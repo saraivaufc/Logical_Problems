@@ -1,0 +1,58 @@
+MODULE Escritor(Biblioteca, Leitor)
+
+	VAR
+	estado : {parado, escrevendo};
+
+	ASSIGN
+	init(estado) := escrevendo;
+
+	next(Biblioteca) :=
+		case
+		(Leitor.estado = parado): disponivel;
+		(Leitor.estado = lendo): indisponivel;
+		1: Biblioteca;
+		esac;
+
+	next(estado):=
+		case
+		(estado = parado & Biblioteca = disponivel  & Leitor.estado = parado): escrevendo;
+		(estado = escrevendo): parado;
+		1: estado;
+		esac;
+
+MODULE Leitor(Biblioteca, Escritor)
+
+	VAR
+	estado : {parado, lendo};
+
+	ASSIGN
+	init(estado) := lendo;
+
+	next(Biblioteca) :=
+		case
+		(Escritor.estado = parado): disponivel;
+		(Escritor.estado = escrevendo): indisponivel;
+		1: Biblioteca;
+		esac;
+
+	next(estado):=
+		case
+		(estado = parado & Biblioteca = disponivel  & Escritor.estado = parado): lendo;
+		(estado = lendo): parado;
+		1: estado;
+		esac;
+
+MODULE main
+	VAR
+	biblioteca : {disponivel, indisponivel};
+
+	leitor : process Leitor (biblioteca, escritor);
+	escritor : process Escritor (biblioteca, leitor);
+
+	ASSIGN
+	init (biblioteca) := disponivel;
+
+	SPEC
+	EF (leitor.estado = lendo & escritor.estado = escrevendo)
+	SPEC
+	!AF(biblioteca = indisponivel -> EF(escritor.estado=parado))
