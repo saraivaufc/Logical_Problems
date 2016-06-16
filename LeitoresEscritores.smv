@@ -56,3 +56,5 @@ MODULE main
 	EF (leitor.estado = lendo & escritor.estado = escrevendo)
 	SPEC
 	!AF(biblioteca = indisponivel -> EF(escritor.estado=parado))
+	SPEC
+	AG!(escritro.estado=escrevendo & leitor.estado=lendo)
