@@ -3,15 +3,27 @@ VAR
 	biblioteca : {disponivel_todos, disponivel_leitores, indisponivel_todos};
 
 	leitor : process Leitor(biblioteca);
+	leitor2 : process Leitor(biblioteca);
 	escritor : process Escritor(biblioteca);
 
 	ASSIGN
 	init (biblioteca) := disponivel_todos;
+	init (escritor.estado) := escrevendo;
+	init (leitor.estado) := ocioso;
+	init (leitor2.estado) := ocioso;
 
 	SPEC
-	!EF (leitor.estado = lendo & escritor.estado = escrevendo)
+	!EF(escritor.estado = ocioso & leitor.estado = ocioso & leitor2.estado = ocioso)
+	
 	SPEC
-	!AF(biblioteca = indisponivel_todos -> EF(escritor.estado=ocioso) -> EF(leitor.estado=ocioso))
+	!EF( (leitor.estado = lendo & escritor.estado = escrevendo) | (leitor2.estado = lendo & escritor.estado = escrevendo) )
+	
+	SPEC
+	!AF(biblioteca = indisponivel_todos -> EF(escritor.estado=ocioso) -> EF(leitor.estado=ocioso) -> EF(leitor2.estado=ocioso))
+
+	SPEC
+	EF(leitor.estado = lendo & leitor2.estado = lendo)
+	
 	SPEC
 	AG!(escritor.estado=escrevendo & leitor.estado=lendo)
 
