@@ -1,60 +1,67 @@
-MODULE Escritor(Biblioteca, Leitor)
-
-	VAR
-	estado : {parado, escrevendo};
-
-	ASSIGN
-	init(estado) := escrevendo;
-
-	next(Biblioteca) :=
-		case
-		(Leitor.estado = parado): disponivel;
-		(Leitor.estado = lendo): indisponivel;
-		1: Biblioteca;
-		esac;
-
-	next(estado):=
-		case
-		(estado = parado & Biblioteca = disponivel  & Leitor.estado = parado): escrevendo;
-		(estado = escrevendo): parado;
-		1: estado;
-		esac;
-
-MODULE Leitor(Biblioteca, Escritor)
-
-	VAR
-	estado : {parado, lendo};
-
-	ASSIGN
-	init(estado) := lendo;
-
-	next(Biblioteca) :=
-		case
-		(Escritor.estado = parado): disponivel;
-		(Escritor.estado = escrevendo): indisponivel;
-		1: Biblioteca;
-		esac;
-
-	next(estado):=
-		case
-		(estado = parado & Biblioteca = disponivel  & Escritor.estado = parado): lendo;
-		(estado = lendo): parado;
-		1: estado;
-		esac;
-
 MODULE main
-	VAR
-	biblioteca : {disponivel, indisponivel};
+VAR
+	biblioteca : {disponivel_todos, disponivel_leitores, indisponivel_todos};
 
-	leitor : process Leitor (biblioteca, escritor);
-	escritor : process Escritor (biblioteca, leitor);
+	leitor : process Leitor(biblioteca);
+	escritor : process Escritor(biblioteca);
 
 	ASSIGN
-	init (biblioteca) := disponivel;
+	init (biblioteca) := disponivel_todos;
 
 	SPEC
-	EF (leitor.estado = lendo & escritor.estado = escrevendo)
+	!EF (leitor.estado = lendo & escritor.estado = escrevendo)
 	SPEC
-	!AF(biblioteca = indisponivel -> EF(escritor.estado=parado))
+	!AF(biblioteca = indisponivel_todos -> EF(escritor.estado=ocioso) -> EF(leitor.estado=ocioso))
 	SPEC
-	AG!(escritro.estado=escrevendo & leitor.estado=lendo)
+	AG!(escritor.estado=escrevendo & leitor.estado=lendo)
+
+
+
+MODULE Escritor(Biblioteca)
+
+	VAR
+	estado : {ocioso, escrevendo};
+
+	ASSIGN
+	init(estado) := ocioso;
+
+	next(estado):=
+		case
+		(estado = ocioso & Biblioteca = disponivel_todos): escrevendo;
+		(estado = ocioso & Biblioteca = disponivel_leitores): ocioso;
+		(estado = escrevendo) : ocioso;
+		1: estado;
+		esac;
+
+	next(Biblioteca) :=
+		case
+		(estado = ocioso & Biblioteca = disponivel_todos): indisponivel_todos;
+		(estado = ocioso & Biblioteca = disponivel_leitores  ): disponivel_leitores;
+		(Biblioteca = indisponivel_todos): disponivel_todos;
+		1: Biblioteca;
+		esac;
+
+MODULE Leitor(Biblioteca)
+
+	VAR
+	estado : {ocioso, entrando , lendo, saindo};
+
+	ASSIGN
+	init(estado) := ocioso;
+
+	
+	next(estado):=
+		case
+		(estado = ocioso & (Biblioteca = disponivel_todos | Biblioteca = disponivel_leitores )  ): lendo;
+		(estado = ocioso & Biblioteca = indisponivel_todos): ocioso;
+		(estado = lendo) : ocioso;
+		1: estado;
+		esac;
+
+	next(Biblioteca) :=
+		case
+		(estado = ocioso & (Biblioteca = disponivel_todos| Biblioteca = disponivel_leitores )): disponivel_leitores;
+		(estado = ocioso & Biblioteca = indisponivel_todos  ): indisponivel_todos;
+		(Biblioteca = disponivel_leitores): disponivel_todos;
+		1: Biblioteca;
+		esac;

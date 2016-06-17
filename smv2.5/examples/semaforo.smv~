@@ -1,0 +1,35 @@
+MODULE main
+VAR
+	semaforo : boolean;
+	proc1 : process usuario(semaforo);
+	proc2 : process usuario(semaforo);
+ASSIGN
+	init(semaforo) :=0;
+
+SPEC
+AG(proc1.estado = entrando -> AF(proc1.estado = critica))
+
+
+MODULE usuario(semaforo)
+VAR
+	estado : {ocioso, entrando, critica, saindo};
+
+ASSIGN
+	init(estado) := ocioso;
+	next(estado) :=
+	case
+		estado = ocioso : {ocioso,entrando};
+		estado = entrando & !semaforo :critica;
+		estado = critica : {critica, saindo};
+		estado = saindo : ocioso;
+		1 : estado;
+	esac;
+	
+	next(semaforo) :=
+	case
+		estado = entrando : 1;
+		estado = saindo :0;
+		1 : semaforo;
+	esac;
+FAIRNESS
+running

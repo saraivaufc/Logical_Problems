@@ -1,0 +1,31 @@
+
+
+MODULE main
+
+VAR
+	a: boolean;
+	b: boolean;
+
+ASSIGN
+	init(a) := 0;
+	init(b) := 0;
+	
+	next(a) :=
+		case
+		(!a & !b) : 1;
+		(a & !b) : {0,1};
+		1: a;
+		esac;
+	next(b) :=
+		case
+		(!a & !b) : {0,1};
+		(a & !b & next(a)) : 1;
+		(a & !b & next(!a)) : 0;
+		1: b;
+	esac;
+SPEC
+EG !b
+SPEC
+EF AG (a & b)
+SPEC
+!AG (a | b)
