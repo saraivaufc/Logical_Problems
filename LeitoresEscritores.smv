@@ -1,79 +1,66 @@
-MODULE main
-VAR
-	biblioteca : {disponivel_todos, disponivel_leitores, indisponivel_todos};
-
-	leitor : process Leitor(biblioteca);
-	leitor2 : process Leitor(biblioteca);
-	escritor : process Escritor(biblioteca);
-
-	ASSIGN
-	init (biblioteca) := disponivel_todos;
-	init (escritor.estado) := escrevendo;
-	init (leitor.estado) := ocioso;
-	init (leitor2.estado) := ocioso;
-
-	SPEC
-	!EF(escritor.estado = ocioso & leitor.estado = ocioso & leitor2.estado = ocioso)
-	
-	SPEC
-	!EF( (leitor.estado = lendo & escritor.estado = escrevendo) | (leitor2.estado = lendo & escritor.estado = escrevendo) )
-	
-	SPEC
-	!AF(biblioteca = indisponivel_todos -> EF(escritor.estado=ocioso) -> EF(leitor.estado=ocioso) -> EF(leitor2.estado=ocioso))
-
-	SPEC
-	EF(leitor.estado = lendo & leitor2.estado = lendo)
-	
-	SPEC
-	AG!(escritor.estado=escrevendo & leitor.estado=lendo)
-
-
-
 MODULE Escritor(Biblioteca)
 
-	VAR
-	estado : {ocioso, escrevendo};
+VAR
+	estado : {escrevendo, dormindo};
 
-	ASSIGN
-	init(estado) := ocioso;
+ASSIGN
+	init(estado) := dormindo;
 
 	next(estado):=
 		case
-		(estado = ocioso & Biblioteca = disponivel_todos): escrevendo;
-		(estado = ocioso & Biblioteca = disponivel_leitores): ocioso;
-		(estado = escrevendo) : ocioso;
+		(Biblioteca = livre) : escrevendo;
+		(Biblioteca = tem_escritor) : dormindo;
 		1: estado;
 		esac;
 
 	next(Biblioteca) :=
 		case
-		(estado = ocioso & Biblioteca = disponivel_todos): indisponivel_todos;
-		(estado = ocioso & Biblioteca = disponivel_leitores  ): disponivel_leitores;
-		(Biblioteca = indisponivel_todos): disponivel_todos;
+		next(estado) = escrevendo: tem_escritor;
+		next(estado) = dormindo & estado = escrevendo: livre;
 		1: Biblioteca;
 		esac;
+FAIRNESS
+	running
 
 MODULE Leitor(Biblioteca)
 
-	VAR
-	estado : {ocioso, entrando , lendo, saindo};
+VAR
+	estado : {lendo, dormindo};
 
-	ASSIGN
-	init(estado) := ocioso;
+ASSIGN
+	init(estado) := dormindo;
 
-	
 	next(estado):=
 		case
-		(estado = ocioso & (Biblioteca = disponivel_todos | Biblioteca = disponivel_leitores )  ): lendo;
-		(estado = ocioso & Biblioteca = indisponivel_todos): ocioso;
-		(estado = lendo) : ocioso;
+		(Biblioteca = livre | (Biblioteca = tem_leitores & estado=dormindo) ): lendo;
+		(Biblioteca = tem_leitores & estado = lendo): dormindo;
 		1: estado;
 		esac;
 
 	next(Biblioteca) :=
 		case
-		(estado = ocioso & (Biblioteca = disponivel_todos| Biblioteca = disponivel_leitores )): disponivel_leitores;
-		(estado = ocioso & Biblioteca = indisponivel_todos  ): indisponivel_todos;
-		(Biblioteca = disponivel_leitores): disponivel_todos;
+		next(estado) = lendo : tem_leitores;
+		-- next(estado) = dormindo : livre; Tratar na Main, ja que nao e possivel saber se o leitor era unico la dentro
 		1: Biblioteca;
 		esac;
+FAIRNESS
+	running
+
+
+
+MODULE main
+VAR
+	biblioteca : {livre, tem_leitores, tem_escritor};
+
+	escritor : process Escritor(biblioteca);
+	leitor : process Leitor(biblioteca);
+	leitor2 : process Leitor(biblioteca);
+
+ASSIGN
+	init (biblioteca) := livre;
+
+
+SPEC !EF( (escritor.estado = escrevendo & leitor.estado = lendo) | (escritor.estado = escrevendo & leitor2.estado = lendo) )
+SPEC EF(leitor.estado = lendo & leitor2.estado = lendo)
+SPEC EF(leitor.estado = lendo & leitor2.estado = lendo & escritor.estado = dormindo)
+SPEC AG!( (escritor.estado=escrevendo & leitor.estado=lendo) | (escritor.estado=escrevendo & leitor2.estado=lendo)  )

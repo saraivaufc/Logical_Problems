@@ -1,0 +1,76 @@
+MODULE produtor(buffer)
+
+VAR
+	estado : {produzindo, dormindo};
+
+ASSIGN
+	init(estado) := produzindo;
+	
+	next(estado) := 
+		case 
+		!buffer: produzindo; -- Se o Buffer está Vazio
+		buffer: dormindo;  -- Se o Buffer está Cheio
+		1: estado;
+		esac;
+
+	next(buffer) :=
+		case
+		next(estado) = dormindo: 1;
+		next(estado) = produzindo: 0;
+		1: buffer;
+		esac;
+
+FAIRNESS 
+	running
+
+
+MODULE consumidor(buffer)
+
+VAR
+	estado : {consumindo, dormindo};
+
+ASSIGN
+	init(estado) := dormindo;
+	next(estado) := 
+		case 
+		!buffer: dormindo;
+		buffer: consumindo;
+		1: estado;
+		esac;
+
+	next(buffer) :=
+		case
+		next(estado) = consumindo : 1;
+		next(estado) = dormindo : 0;
+		1: buffer;
+		esac;
+
+
+FAIRNESS 
+	running
+
+
+MODULE main
+
+VAR
+	buffer : boolean;
+	prod : process produtor(buffer);
+	cons : process consumidor(buffer);
+
+ASSIGN
+	init(buffer) := 0;
+
+	next(prod.estado) := 
+		case
+		(next(cons.estado) = dormindo) : produzindo;
+		1:prod.estado;
+		esac;
+
+	next(cons.estado) := 
+		case
+		(next(prod.estado) = dormindo) : consumindo;
+		1:cons.estado;
+		esac;
+
+SPEC
+	!AF(buffer = 0 -> EF(prod.estado=dormindo))
