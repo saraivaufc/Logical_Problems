@@ -1,66 +1,71 @@
 MODULE Escritor(Biblioteca)
-
-VAR
-	estado : {escrevendo, dormindo};
-
-ASSIGN
-	init(estado) := dormindo;
-
-	next(estado):=
-		case
-		(Biblioteca = livre) : escrevendo;
-		(Biblioteca = tem_escritor) : dormindo;
-		1: estado;
+	VAR
+		estado : {escrevendo, dormindo};
+	ASSIGN
+		init(estado) := dormindo;
+		next(estado):=
+			case
+			(Biblioteca = livre) : escrevendo;
+			(Biblioteca = tem_escritor) : dormindo;
+			1: estado;
 		esac;
-
-	next(Biblioteca) :=
-		case
-		next(estado) = escrevendo: tem_escritor;
-		next(estado) = dormindo & estado = escrevendo: livre;
-		1: Biblioteca;
+		next(Biblioteca) :=
+			case
+			next(estado) = escrevendo: tem_escritor;
+			next(estado) = dormindo & estado = escrevendo: livre;
+			1: Biblioteca;
 		esac;
-FAIRNESS
-	running
+	FAIRNESS
+		running
 
 MODULE Leitor(Biblioteca)
-
-VAR
-	estado : {lendo, dormindo};
-
-ASSIGN
-	init(estado) := dormindo;
-
-	next(estado):=
-		case
-		(Biblioteca = livre | (Biblioteca = tem_leitores & estado=dormindo) ): lendo;
-		(Biblioteca = tem_leitores & estado = lendo): dormindo;
-		1: estado;
+	VAR
+		estado : {lendo, dormindo};
+	ASSIGN
+		init(estado) := dormindo;
+		next(estado):=
+			case
+			(Biblioteca = livre | (Biblioteca = tem_leitores & estado=dormindo) ): lendo;
+			(Biblioteca = tem_leitores & estado = lendo): dormindo;
+			1: estado;
 		esac;
-
-	next(Biblioteca) :=
-		case
-		next(estado) = lendo : tem_leitores;
-		-- next(estado) = dormindo : livre; Tratar na Main, ja que nao e possivel saber se o leitor era unico la dentro
-		1: Biblioteca;
+		next(Biblioteca) :=
+			case
+			next(estado) = lendo : tem_leitores;
+			-- next(estado) = dormindo : livre; -- Tratar na Main, ja que nao e possivel saber se o leitor era unico la dentro
+			1: Biblioteca;
 		esac;
-FAIRNESS
-	running
-
-
+	FAIRNESS
+		running
 
 MODULE main
-VAR
-	biblioteca : {livre, tem_leitores, tem_escritor};
+	VAR
+		biblioteca : {livre, tem_leitores, tem_escritor};
+		escritor : process Escritor(biblioteca);
+		leitor : process Leitor(biblioteca);
+		leitor2 : process Leitor(biblioteca);
+	ASSIGN
+		init (biblioteca) := livre;
 
-	escritor : process Escritor(biblioteca);
-	leitor : process Leitor(biblioteca);
-	leitor2 : process Leitor(biblioteca);
+		next(biblioteca) :=
+			case
+			(leitor.estado = dormindo & leitor2.estado = dormindo & escritor.estado = dormindo) : livre;
+			1: biblioteca;
+		esac;
 
-ASSIGN
-	init (biblioteca) := livre;
+	SPEC !EF( (escritor.estado = escrevendo & leitor.estado = lendo) | (escritor.estado = escrevendo & leitor2.estado = lendo) ) -- A e B
+	SPEC !AG( (escritor.estado=escrevendo & leitor.estado=lendo) | (escritor.estado=escrevendo & leitor2.estado=lendo)  )
+
+	SPEC !EF(escritor.estado = escrevendo & leitor.estado = lendo & leitor2.estado = lendo) -- E
+	SPEC !AG(escritor.estado=escrevendo & leitor.estado=lendo & leitor2.estado=lendo )
+	
+
+	SPEC EF(leitor.estado = lendo & leitor2.estado = lendo & escritor.estado = dormindo) -- C
+	SPEC EF(escritor.estado = dormindo & leitor.estado = dormindo & leitor2.estado = dormindo) -- D
+	SPEC EF(escritor.estado = escrevendo & leitor.estado = dormindo & leitor2.estado = dormindo) -- F
+	SPEC EF(escritor.estado = dormindo & leitor.estado = lendo & leitor2.estado = dormindo) -- G
+	SPEC EF(escritor.estado = dormindo & leitor.estado = dormindo & leitor2.estado = lendo) -- H
 
 
-SPEC !EF( (escritor.estado = escrevendo & leitor.estado = lendo) | (escritor.estado = escrevendo & leitor2.estado = lendo) )
-SPEC EF(leitor.estado = lendo & leitor2.estado = lendo)
-SPEC EF(leitor.estado = lendo & leitor2.estado = lendo & escritor.estado = dormindo)
-SPEC AG!( (escritor.estado=escrevendo & leitor.estado=lendo) | (escritor.estado=escrevendo & leitor2.estado=lendo)  )
+
+
