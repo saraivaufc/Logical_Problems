@@ -1,10 +1,8 @@
 MODULE Biblioteca
 	VAR 
 		estado : {livre, tem_leitores, tem_escritor};
-		qtd_visitantes : 0..10;
 	ASSIGN
 		init(estado) := livre;
-		init(qtd_visitantes) := 0;
 
 MODULE Escritor(Biblioteca)
 	VAR
@@ -13,21 +11,15 @@ MODULE Escritor(Biblioteca)
 		init(estado) := ocioso;
 		next(estado):=
 			case
-			(estado=ocioso & Biblioteca.estado = livre) : escrevendo;
+			(Biblioteca.estado = livre) : escrevendo;
 			(estado=escrevendo) : ocioso;
 			TRUE: estado;
 		esac;
 		next(Biblioteca.estado) :=
 			case
 			(next(estado) = escrevendo): tem_escritor;
-			(next(estado) = ocioso): livre;
+			(estado = escrevendo & next(estado) = ocioso): livre;
 			TRUE: Biblioteca.estado;
-		esac;
-		next(Biblioteca.qtd_visitantes) :=
-			case
-			(next(Biblioteca.estado) = tem_escritor): 1;
-			(next(Biblioteca.estado) = livre): 0;
-			TRUE: Biblioteca.qtd_visitantes;
 		esac;
 	FAIRNESS
 		running
@@ -39,22 +31,14 @@ MODULE Leitor(Biblioteca)
 		init(estado) := ocioso;
 		next(estado):=
 			case
-			( (estado=ocioso & Biblioteca.estado = livre) | (estado=ocioso & Biblioteca.estado = tem_leitores) ): lendo;
+			(Biblioteca.estado = livre | Biblioteca.estado = tem_leitores): lendo;
 			(estado=lendo) : ocioso;
 			TRUE: estado;
 		esac;
 		next(Biblioteca.estado) :=
 			case
 			(next(estado) = lendo): tem_leitores;
-			(next(estado) = ocioso & Biblioteca.qtd_visitantes > 1): tem_leitores;
-			(next(estado) = ocioso & Biblioteca.qtd_visitantes = 1): livre;
 			TRUE: Biblioteca.estado;
-		esac;
-		next(Biblioteca.qtd_visitantes) :=
-			case
-			(estado = ocioso & next(estado) = lendo): (Biblioteca.qtd_visitantes + 1);
-			(estado = lendo & next(estado) = ocioso): (Biblioteca.qtd_visitantes - 1);
-			TRUE: Biblioteca.qtd_visitantes;
 		esac;
 	FAIRNESS
 		running
@@ -70,6 +54,12 @@ MODULE main
 		--leitor5 : process Leitor(biblioteca);
 		--leitor6 : process Leitor(biblioteca);
 	ASSIGN
+		next(biblioteca.estado):=
+				case
+				(escritor.estado = ocioso & leitor.estado = ocioso & leitor2.estado = ocioso): livre;
+				TRUE: biblioteca.estado;
+		esac;
+	
 
 SPEC
 	!EF( (escritor.estado = escrevendo & leitor.estado = lendo) | (escritor.estado = escrevendo & leitor2.estado = lendo) ) -- A e B
