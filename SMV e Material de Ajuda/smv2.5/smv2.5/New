@@ -1,0 +1,185 @@
+NEW OPTIONS
+
+-version
+
+Prints version information on stdout and exits.
+
+-simp n
+
+n = 0, 1 or 2. 
+
+Implemented 2 more levels of simplification operators (`constrain').
+n=0 is the default and original SMV setup. n=1 is generally faster on
+big examples but takes more memory. n=2 is a combination of the two,
+which is usually slower but supposed to take even less memory.  Has a
+real effect only with -cp option.
+
+-early, -noearly
+
+With -early SMV evaluates AG specs while building the set of reachable
+states (-noearly turns it off, and is the default). This often helps
+in finding bugs earlier before the complete model is built.  Has an
+effect only with -AG and -f options.  At every iteration in the
+forward search SMV evaluates all the specs.  If a spec is false,
+prints a counterexample and removes the spec from the list, so it
+won't be evaluated again.  If no specs are left, exits immediately.
+
+This option togerther with -inc supports a "lazy" construction of the
+transition relation.  That is, it is computed only if it is necessary
+for evaluating a spec or for constructing a counterexample.
+
+This option may also slow down verification if -inc option is used,
+since it may build the restricted trans. rel. at every iteration.
+
+USE IT WITH CAUTION! Only *true* AG properties can be early evaluated.
+If your formulas contain other than the topmost AG temporal operators,
+the results may be wrong.
+
+-reordermaxsize n
+
+Set the maximal size of BDDs to reorder. Useful if BDDs grow too large
+and reordering takes forever. Default is n = 300000.
+
+-drip
+
+Don't Reorder Intermediate [relational] Products.
+
+Disables reordering while computing forward or backward relational
+products with -cp option.  My observation is that intermediate
+relational products are often of a random nature and reordering
+variables for them may severly screw up the BDD size of the reachable
+state set.
+
+-oo file.ord
+
+Output Often the order file.  This is basically the same as the -o
+option, except that while reordering SMV will dump the order file
+`file.ord' every time after placing each variable, not only after
+the whole reordering is complete.  This comes handy when you reorder a
+huge BDD and it already did half of the work in several hours, and
+then it suddenly runs out of memory and you lose all of the partial
+results.
+
+-quit, -noquit
+
+If -noquit is specified together with `-o file.ord', SMV does not quit
+after dumping the order file. Useful with dynamic toggling of
+reordering.  See `signal handling' for details. `-quit' is the
+opposite and is the default behavior.
+
+-gcfactor n
+-gclimit L
+
+Set the desired frequency `n' and memory limit `L' (in MB) for garbage
+collection.  Defaults are n=3 and L=1024 (= 1GB). Next garbage
+collection will be called when the number of nodes exceeds a certain
+curve that behaves close to y=n*x at small x and goes flatter as it
+approaches the limit L. Here x is the number of nodes after the last
+GC.  This behavior corresponds to rare garbage collection when memory
+is sufficient, and more frequent collections with high memory demands.
+
+Don't put n=1 or too small L, it'll kill you.
+
+Reason for the options: I found that sometimes garbage collection
+takes too large a fraction of time.  Bigger `n' reduces this
+dramatically, but it may take much more memory.  Be sure to set
+-gclimit to no more (and better no less) than the actual memory size
+on your machine.  The memory limit will be adjusted if SMV goes beyond
+it and doesn't crash.  If you feel you really need to garbage collect
+at some point, you may force SMV by sending it signal 12 (SIGUSR2).
+See `signal handling' for details.
+
+-checktrans
+
+Checks that the transition relation is total, and if not, prints a
+deadlock state. Very useful if you are using TRANS to specify the
+transition relation. Note, that SMV can not check the totalness of the
+transition relation with CTL formulas (no idea why), and some formulas
+may be wrong if it's not total. 
+
+NEW FEATURES
+
+Signal handling.
+
+SMV now catches all the UNIX signals it can catch and prints the
+standard report (signal number, number of BDD nodes, memory usage etc.)
+before exiting. The only exceptions are:
+
+* Signal 10 (user defined 1): it toggles the dynamic variable reordering
+  ON and OFF on the fly.  This proved to be useful in one of my
+  examples, however generally it just creates an ellusion of `more
+  control' over SMV while it's running.  The option -reordermaxsize is
+  usually sufficient.
+
+* Signal 12 (user defined 2): forces garbage collection next appropriate
+  time.  This is useful if you specified too big -gcfactor or -gclimit.
+
+Note: signal numbers are different under Solaris. Currently SMV uses
+the standard numbers (not macros like SIGUSR1) for handling the
+signals.  This may change in future when I figure out how to change
+the emacs interface accordingly.
+
+Also, SMV writes its own process id in a file .smv-pid in the current
+directory. This allows SMV interfaces (like my smv-mode.el for emacs)
+to send signals to SMV more conveniently. In particular, it makes the
+toggling of reordering just a key stroke.
+
+If you turn off the dynamic reordering in the middle of the reordering
+process, by default SMV will finish the reordering, write the order
+file and quit. Use option `-noquit' to avoid that.
+
+BUGS
+
+* Implication -> was left-associative, but has to be
+  right-associative. Fixed.
+
+* With -AG option SMV didn't report anything if an AG-spec is
+  true. The counterexample facility was broken there as well. Fixed.
+
+* A spooky bug showed up in my version of "cp_forward" in symbols.c.
+  When `fprintf("relational product...")' is moved *after* the
+  computation of new `g' (where it should belong, I think), in one of my
+  examples this causes incorrect behavior of `forsome' and `f_shift'
+  then complains:
+
+  *** internal error *** f_shift: IS_CURRENT_VAR(alevel)
+
+  It turned out that size_bdd `spoils' the BDD structure in some cases.
+  Specifically, the ID field is 21 bits long, so more than 2M nodes was
+  really dangerous.  Hopefully, fixed.
+
+* A bug in process selector variables was found and fixed by Hiromi
+  Hiraishi. The semantics of asynchronous processes is usually
+  understood that `at any point at most one process can
+  move, and it can be anyone'. However, SMV had another view on that:
+  `at any state at most one process can move, and it is determined by
+  the current state. At the next state any one can be selected for the
+  next move'.  Although a good solution would require significant
+  code change, Hiromi came up with a wonderful hack that seems to
+  solve the problem in a simple way. The bug, e.g. caused this spec
+  to evaluate incorrectly:
+
+	 MODULE set(x)
+	 ASSIGN
+	   next(x) := 1;
+
+	 MODULE reset(y)
+	 ASSIGN
+	   next(y) := 0;
+
+	 MODULE main
+	 VAR
+	   flag: boolean;
+	   a:    process set(flag);
+	   b:    process reset(flag);
+	 ASSIGN
+	   init(flag) := 1;
+
+	 SPEC EG(flag)
+
+* A lot of bugs were found in my new bells and whistles.  Looking
+  forward to more...
+
+  -- Sergey Berezin, Carnegie Mellon University, March/April, 1998.
+
+					sergey.berezin@cs.cmu.edu

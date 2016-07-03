@@ -1,71 +1,91 @@
+MODULE Biblioteca
+	VAR 
+		estado : {livre, tem_leitores, tem_escritor};
+		qtd_visitantes : 0..10;
+	ASSIGN
+		init(estado) := livre;
+		init(qtd_visitantes) := 0;
+
 MODULE Escritor(Biblioteca)
 	VAR
-		estado : {escrevendo, dormindo};
+		estado : {escrevendo, ocioso};
 	ASSIGN
-		init(estado) := dormindo;
+		init(estado) := ocioso;
 		next(estado):=
 			case
-			(Biblioteca = livre) : escrevendo;
-			(Biblioteca = tem_escritor) : dormindo;
-			1: estado;
+			(estado=ocioso & Biblioteca.estado = livre) : escrevendo;
+			(estado=escrevendo) : ocioso;
+			TRUE: estado;
 		esac;
-		next(Biblioteca) :=
+		next(Biblioteca.estado) :=
 			case
-			next(estado) = escrevendo: tem_escritor;
-			next(estado) = dormindo & estado = escrevendo: livre;
-			1: Biblioteca;
+			(next(estado) = escrevendo): tem_escritor;
+			(next(estado) = ocioso): livre;
+			TRUE: Biblioteca.estado;
+		esac;
+		next(Biblioteca.qtd_visitantes) :=
+			case
+			(next(Biblioteca.estado) = tem_escritor): 1;
+			(next(Biblioteca.estado) = livre): 0;
+			TRUE: Biblioteca.qtd_visitantes;
 		esac;
 	FAIRNESS
 		running
 
 MODULE Leitor(Biblioteca)
 	VAR
-		estado : {lendo, dormindo};
+		estado : {lendo, ocioso};
 	ASSIGN
-		init(estado) := dormindo;
+		init(estado) := ocioso;
 		next(estado):=
 			case
-			(Biblioteca = livre | (Biblioteca = tem_leitores & estado=dormindo) ): lendo;
-			(Biblioteca = tem_leitores & estado = lendo): dormindo;
-			1: estado;
+			( (estado=ocioso & Biblioteca.estado = livre) | (estado=ocioso & Biblioteca.estado = tem_leitores) ): lendo;
+			(estado=lendo) : ocioso;
+			TRUE: estado;
 		esac;
-		next(Biblioteca) :=
+		next(Biblioteca.estado) :=
 			case
-			next(estado) = lendo : tem_leitores;
-			-- next(estado) = dormindo : livre; -- Tratar na Main, ja que nao e possivel saber se o leitor era unico la dentro
-			1: Biblioteca;
+			(next(estado) = lendo): tem_leitores;
+			(next(estado) = ocioso & Biblioteca.qtd_visitantes > 1): tem_leitores;
+			(next(estado) = ocioso & Biblioteca.qtd_visitantes = 1): livre;
+			TRUE: Biblioteca.estado;
+		esac;
+		next(Biblioteca.qtd_visitantes) :=
+			case
+			(estado = ocioso & next(estado) = lendo): (Biblioteca.qtd_visitantes + 1);
+			(estado = lendo & next(estado) = ocioso): (Biblioteca.qtd_visitantes - 1);
+			TRUE: Biblioteca.qtd_visitantes;
 		esac;
 	FAIRNESS
 		running
 
 MODULE main
 	VAR
-		biblioteca : {livre, tem_leitores, tem_escritor};
+		biblioteca : Biblioteca;
 		escritor : process Escritor(biblioteca);
 		leitor : process Leitor(biblioteca);
 		leitor2 : process Leitor(biblioteca);
+		--leitor3 : process Leitor(biblioteca);
+		--leitor4 : process Leitor(biblioteca);
+		--leitor5 : process Leitor(biblioteca);
+		--leitor6 : process Leitor(biblioteca);
 	ASSIGN
-		init (biblioteca) := livre;
 
-		next(biblioteca) :=
-			case
-			(leitor.estado = dormindo & leitor2.estado = dormindo & escritor.estado = dormindo) : livre;
-			1: biblioteca;
-		esac;
-
-	SPEC !EF( (escritor.estado = escrevendo & leitor.estado = lendo) | (escritor.estado = escrevendo & leitor2.estado = lendo) ) -- A e B
-	SPEC !AG( (escritor.estado=escrevendo & leitor.estado=lendo) | (escritor.estado=escrevendo & leitor2.estado=lendo)  )
-
-	SPEC !EF(escritor.estado = escrevendo & leitor.estado = lendo & leitor2.estado = lendo) -- E
-	SPEC !AG(escritor.estado=escrevendo & leitor.estado=lendo & leitor2.estado=lendo )
-	
-
-	SPEC EF(leitor.estado = lendo & leitor2.estado = lendo & escritor.estado = dormindo) -- C
-	SPEC EF(escritor.estado = dormindo & leitor.estado = dormindo & leitor2.estado = dormindo) -- D
-	SPEC EF(escritor.estado = escrevendo & leitor.estado = dormindo & leitor2.estado = dormindo) -- F
-	SPEC EF(escritor.estado = dormindo & leitor.estado = lendo & leitor2.estado = dormindo) -- G
-	SPEC EF(escritor.estado = dormindo & leitor.estado = dormindo & leitor2.estado = lendo) -- H
-
-
-
-
+SPEC
+	!EF( (escritor.estado = escrevendo & leitor.estado = lendo) | (escritor.estado = escrevendo & leitor2.estado = lendo) ) -- A e B
+SPEC
+	!AG( (escritor.estado=escrevendo & leitor.estado=lendo) | (escritor.estado=escrevendo & leitor2.estado=lendo)  )
+SPEC
+	!EF(escritor.estado = escrevendo & leitor.estado = lendo & leitor2.estado = lendo) -- E
+SPEC
+	!AG(escritor.estado=escrevendo & leitor.estado=lendo & leitor2.estado=lendo )
+SPEC
+	EF(leitor.estado = lendo & leitor2.estado = lendo & escritor.estado = ocioso) -- C
+SPEC
+	EF(escritor.estado = ocioso & leitor.estado = ocioso & leitor2.estado = ocioso) -- D
+SPEC
+	EF(escritor.estado = escrevendo & leitor.estado = ocioso & leitor2.estado = ocioso) -- F
+SPEC
+	EF(escritor.estado = ocioso & leitor.estado = lendo & leitor2.estado = ocioso) -- G
+SPEC
+	EF(escritor.estado = ocioso & leitor.estado = ocioso & leitor2.estado = lendo) -- H

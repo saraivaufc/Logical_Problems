@@ -1,0 +1,7 @@
+Para executar sua modelagem usadno o smv2.5, faça o seguinte:
+
+0- coloque sua modelagem (modelagem.smv, por exemplo) dentro de uma pasta (Trabalho, por exemplo) na pasta smv2.5;
+1- Pelo terminal, navegue até a pasta do smv2.5;
+2- execute o seguinte comando: 
+2.1- se utilizar windows: smv.exe Trabalho/modelagem.smv
+2.2- se utilziar linux, você precisa ter instalado o wine: wine smv.exe Trabalho/modelagem.smv 	
