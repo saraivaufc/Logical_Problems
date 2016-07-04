@@ -26,7 +26,7 @@ SPEC
 	EF(escritor.estado = ocioso & leitor.estado = lendo & leitor2.estado = lendo)
 SPEC
 	EF(leitor.estado = ocioso & leitor2.estado = ocioso & escritor.estado = escrevendo & biblioteca = tem_escritor)
-SPEC
-	AG(escritor.estado=ocioso -> AF(escritor.estado=escrevendo) )
+--SPEC
+--	AG(escritor.estado=ocioso -> AF(escritor.estado=escrevendo) )
 --SPEC
 --	AG( leitor2.estado=ocioso -> AF(leitor.estado=lendo))
