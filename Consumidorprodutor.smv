@@ -74,3 +74,5 @@ ASSIGN
 
 SPEC
 	!AF(buffer = 0 -> EF(prod.estado=dormindo))
+SPEC
+	AG!(prod.estado = produzindo & cons.estado = consumindo)

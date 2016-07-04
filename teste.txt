@@ -1,0 +1,32 @@
+SPEC
+	AG!( (escritor2.estado = escrevendo & leitor.estado = lendo) | (escritor2.estado = escrevendo & leitor2.estado = lendo))
+SPEC
+	AG!( (escritor.estado=escrevendo & leitor.estado=lendo) | (escritor.estado=escrevendo & leitor2.estado=lendo)  )
+SPEC
+	AG!( (escritor.estado=escrevendo & leitor.estado=lendo) | (escritor.estado=escrevendo & leitor2.estado=lendo)  )
+SPEC
+	AG!(escritor.estado = escrevendo & leitor.estado = lendo & leitor2.estado = lendo)
+SPEC
+	AG!(escritor.estado=escrevendo & leitor.estado=lendo & leitor2.estado=lendo )
+SPEC
+	AG!(escritor.estado=escrevendo & leitor.estado=lendo & leitor2.estado=lendo )
+SPEC
+	AG!( (escritor.estado = escrevendo & biblioteca = livre) | (leitor.estado = lendo & biblioteca = livre) | (leitor2.estado = lendo & biblioteca = livre) )
+SPEC
+	EF(leitor.estado = lendo & leitor2.estado = lendo & escritor.estado = ocioso)
+SPEC
+	EF(escritor.estado = ocioso & leitor.estado = ocioso & leitor2.estado = ocioso)
+SPEC
+	EF(escritor.estado = escrevendo & leitor.estado = ocioso & leitor2.estado = ocioso)
+SPEC
+	EF(escritor.estado = ocioso & leitor.estado = lendo & leitor2.estado = ocioso)
+SPEC
+	EF(escritor.estado = ocioso & leitor.estado = ocioso & leitor2.estado = lendo)
+SPEC
+	EF(escritor.estado = ocioso & leitor.estado = lendo & leitor2.estado = lendo)
+SPEC
+	EF(leitor.estado = ocioso & leitor2.estado = ocioso & escritor.estado = escrevendo & biblioteca = tem_escritor)
+SPEC
+	AG(escritor.estado=ocioso -> AF(escritor.estado=escrevendo) )
+--SPEC
+--	AG( leitor2.estado=ocioso -> AF(leitor.estado=lendo))
