@@ -58,21 +58,21 @@ MODULE main
 	
 
 SPEC
-	!EF( (escritor.estado = escrevendo & leitor.estado = lendo) | (escritor.estado = escrevendo & leitor2.estado = lendo) | (escritor.estado = escrevendo & leitor3.estado = lendo) )
+	!AG( (escritor.estado = escrevendo & leitor.estado = lendo) | (escritor.estado = escrevendo & leitor2.estado = lendo) | (escritor.estado = escrevendo & leitor3.estado = lendo) )
 SPEC
-	!EF( (escritor2.estado = escrevendo & leitor.estado = lendo) | (escritor2.estado = escrevendo & leitor2.estado = lendo) | (escritor2.estado = escrevendo & leitor3.estado = lendo) )
+	!AG( (escritor2.estado = escrevendo & leitor.estado = lendo) | (escritor2.estado = escrevendo & leitor2.estado = lendo) | (escritor2.estado = escrevendo & leitor3.estado = lendo) )
 SPEC
 	!AG( (escritor.estado=escrevendo & leitor.estado=lendo) | (escritor.estado=escrevendo & leitor2.estado=lendo)  )
 SPEC
-	!AF( (escritor.estado=escrevendo & leitor.estado=lendo) | (escritor.estado=escrevendo & leitor2.estado=lendo)  )
+	!AG( (escritor.estado=escrevendo & leitor.estado=lendo) | (escritor.estado=escrevendo & leitor2.estado=lendo)  )
 SPEC
-	!EF(escritor.estado = escrevendo & leitor.estado = lendo & leitor2.estado = lendo)
+	!AG(escritor.estado = escrevendo & leitor.estado = lendo & leitor2.estado = lendo)
 SPEC
 	!AG(escritor.estado=escrevendo & leitor.estado=lendo & leitor2.estado=lendo )
 SPEC
-	!AF(escritor.estado=escrevendo & leitor.estado=lendo & leitor2.estado=lendo )
+	!AG(escritor.estado=escrevendo & leitor.estado=lendo & leitor2.estado=lendo )
 SPEC
-	!EF( (escritor.estado = escrevendo & biblioteca = livre) | (leitor.estado = lendo & biblioteca = livre) | (leitor2.estado = lendo & biblioteca = livre) )
+	!EG( (escritor.estado = escrevendo & biblioteca = livre) | (leitor.estado = lendo & biblioteca = livre) | (leitor2.estado = lendo & biblioteca = livre) )
 SPEC
 	EF(leitor.estado = lendo & leitor2.estado = lendo & escritor.estado = ocioso)
 SPEC
