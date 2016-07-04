@@ -25,6 +25,7 @@ MODULE Pessoa(biblioteca, tipo)
 MODULE main
 	VAR
 		biblioteca : {livre, lendo, escrevendo};
+
 		escritor : process Pessoa(biblioteca, 1);
 		escritor2 : process Pessoa(biblioteca, 1);
 
@@ -53,21 +54,26 @@ MODULE main
 			case
 			(next(escritor.estado) = parado & next(escritor2.estado) = parado) : ativo;
 			1:leitor2.estado;
-		esac;		
+		esac;
 
 		next(biblioteca) :=
 			case
-			(next(escritor.estado = ativo | escritor2.estado = ativo)) : escrevendo;
-			(next(leitor.estado = ativo | leitor2.estado = ativo)) : lendo;
+			( next(escritor.estado) = ativo | next(escritor2.estado) = ativo  ) : escrevendo;
+			(next(leitor.estado) = ativo | next(leitor2.estado) = ativo ) : lendo;
 			(next(escritor.estado) = parado & next(escritor2.estado) = parado & next(leitor.estado) = parado & next(leitor2.estado) = parado): livre;
 			1: biblioteca;
 		esac;
 SPEC
-	AG!( (escritor.estado = ativo & leitor.estado = ativo) | (escritor.estado = ativo & leitor2.estado = ativo))
+	AG!( (escritor.estado = ativo & leitor.estado = ativo) | (escritor.estado = ativo & leitor2.estado = ativo) | (escritor.estado = ativo & escritor2.estado = ativo))
 SPEC
 	AG!( (escritor2.estado = ativo & leitor.estado = ativo) | (escritor2.estado = ativo & leitor2.estado = ativo))
 SPEC
 	!AF(biblioteca = livre -> EF(escritor.estado=parado))
 SPEC
+	AG(escritor.estado = parado -> AF(escritor.estado = ativo))
+SPEC
 	AG(escritor2.estado = parado -> AF(escritor2.estado = ativo))
-
+SPEC
+	AG(leitor.estado = parado -> AF(leitor.estado = ativo))
+SPEC
+	AG(leitor2.estado = parado -> AF(leitor2.estado = ativo))
