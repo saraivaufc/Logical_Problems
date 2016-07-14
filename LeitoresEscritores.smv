@@ -1,22 +1,39 @@
---Leitor = 0 e Escritor = 1
-
-MODULE Pessoa(biblioteca, tipo)
+MODULE Escritor(biblioteca)
 	VAR
-		estado : {parado, ativo};
+		estado : {parado, escrevendo};
 	ASSIGN
 		init(estado) := parado;
 		next(estado):=
 			case
-			(estado = parado & biblioteca = livre) : ativo;
-			(estado = parado & biblioteca = lendo & tipo=0) : ativo;
-			(estado = parado & biblioteca = escrevendo) : parado;
-			(estado = ativo) : parado;
+			(biblioteca = livre) : escrevendo;
+			(estado = escrevendo) : parado;
 			1: estado;
 		esac;
 		next(biblioteca) :=
 			case
-			(next(estado) = ativo & tipo = 0): lendo;
-			(next(estado) = ativo & tipo = 1): escrevendo;
+			(next(estado) = escrevendo): tem_escritor;
+			(biblioteca=tem_escritor & estado = escrevendo & next(estado) = parado): livre;
+			1: biblioteca;
+		esac;
+	FAIRNESS
+		running
+
+MODULE Leitor(biblioteca, l1)
+	VAR
+		estado : {parado, lendo};
+	ASSIGN
+		init(estado) := parado;
+		next(estado):=
+			case
+			(biblioteca = livre) : lendo;
+			(estado = parado & biblioteca = tem_leitor) : lendo;
+			(estado = lendo) : parado;
+			1: estado;
+		esac;
+		next(biblioteca) :=
+			case
+			(next(estado) = lendo): tem_leitor;
+			(biblioteca = tem_leitor & estado = lendo & next(estado) = parado & next(l1.estado)=parado ): livre;
 			1: biblioteca;
 		esac;
 	FAIRNESS
@@ -24,56 +41,50 @@ MODULE Pessoa(biblioteca, tipo)
 
 MODULE main
 	VAR
-		biblioteca : {livre, lendo, escrevendo};
-
-		escritor : process Pessoa(biblioteca, 1);
-		escritor2 : process Pessoa(biblioteca, 1);
-
-		leitor : process Pessoa(biblioteca, 0);
-		leitor2 : process Pessoa(biblioteca, 0);
+		biblioteca : {livre, tem_escritor, tem_leitor};
+		escritor : process Escritor(biblioteca);
+		escritor2 : process Escritor(biblioteca);
+		leitor : process Leitor(biblioteca, leitor2);
+		leitor2 : process Leitor(biblioteca, leitor);
 	ASSIGN
-		init(biblioteca) := escrevendo;
-		init(escritor.estado) := ativo;	
+		init(biblioteca) := livre;
 
-		next(escritor.estado) := 
-			case
-			(next(leitor.estado) = parado & next(leitor2.estado) = parado & next(escritor2.estado) = parado) : ativo;
-			1:escritor.estado;
-			esac;
-		next(escritor2.estado) := 
-			case
-			(next(leitor.estado) = parado & next(leitor2.estado) = parado & next(escritor.estado) = parado) : ativo;
-			1:escritor2.estado;
-			esac;
-		next(leitor.estado) := 
-			case
-			(next(escritor.estado) = parado & next(escritor2.estado) = parado) : ativo;
-			1:leitor.estado;
-			esac;
-		next(leitor2.estado) := 
-			case
-			(next(escritor.estado) = parado & next(escritor2.estado) = parado) : ativo;
-			1:leitor2.estado;
-		esac;
 
-		next(biblioteca) :=
-			case
-			( next(escritor.estado) = ativo | next(escritor2.estado) = ativo  ) : escrevendo;
-			(next(leitor.estado) = ativo | next(leitor2.estado) = ativo ) : lendo;
-			(next(escritor.estado) = parado & next(escritor2.estado) = parado & next(leitor.estado) = parado & next(leitor2.estado) = parado): livre;
-			1: biblioteca;
-		esac;
+
 SPEC
-	AG!( (escritor.estado = ativo & leitor.estado = ativo) | (escritor.estado = ativo & leitor2.estado = ativo) | (escritor.estado = ativo & escritor2.estado = ativo))
-SPEC
-	AG!( (escritor2.estado = ativo & leitor.estado = ativo) | (escritor2.estado = ativo & leitor2.estado = ativo))
-SPEC
-	!AF(biblioteca = livre -> EF(escritor.estado=parado))
-SPEC
-	AG(escritor.estado = parado -> AF(escritor.estado = ativo))
-SPEC
-	AG(escritor2.estado = parado -> AF(escritor2.estado = ativo))
-SPEC
-	AG(leitor.estado = parado -> AF(leitor.estado = ativo))
-SPEC
-	AG(leitor2.estado = parado -> AF(leitor2.estado = ativo))
+	EF(leitor.estado=parado & leitor2.estado=parado & escritor.estado=parado & escritor2.estado=parado & next(biblioteca)=livre) --false
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
